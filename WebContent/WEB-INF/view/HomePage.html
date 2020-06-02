@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<link rel="stylesheet" href="#(ctxPath)/static/css/HomePage.css">
+<script src="#(ctxPath)/static/js/jquery-3.4.1.js"></script>
+
+<style type="text/css">
+	#bind-phonenum{
+		color: white;
+	}
+	#bind-phonenum h3{
+		font-size: 32px;
+	}
+</style>
+</head>
+<body>
+
+<div class="container">
+	<h1>这里是主页</h1>
+	<h2></h2>
+	<div id="bind-phonenum" hidden="hidden"><h3>你可以    <a>绑定手机号</a></h3></div>
+	
+	<a href="#(ctxPath)/login/cancellation">注销</a>
+	<a href="#(ctxPath)/welcome">管理学生信息</a>
+	<div>这里是jfinal版的主页</div>
+</div>
+	
+</body>
+</html>
+
+<script>
+	$(function(){
+		$.post("#(ctxpath)/login/getThisUserMess", {}, function(ret){
+			var username = ret.username;
+			$(".container h2").text("欢迎回来，" + username);
+			console.log(ret.phonenum);
+			if (ret.phonenum == 9){
+				$("#bind-phonenum").attr("hidden", false);
+			}
+		})
+	})
+</script>

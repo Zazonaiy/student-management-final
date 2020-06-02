@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>#(sysTitle)</title>
+<script src="#(ctxPath)/static/js/jquery-3.4.1.js"></script>
+<script src="#(ctxPath)/static/js/dialog.js"></script>
+<script src="#(ctxPath)/static/js/dialog-plus.js"></script>
+<style type="text/css">
+	.center{
+		text-align: center;
+	}
+	#batchDelBtn, #addStuBtn{
+		margin-top: 10px;
+		height : 40px;
+		weight : 400px;
+	}
+	.addPane{
+		text-align: left;
+	}
+	.addPane input{
+		padding: 1px 0px;
+		width: 173px;
+		height: 21px;
+	}
+	
+</style>
+</head>
+<body>
+	<h1 class="center">#(sysTitle)</h1>
+	<h2 class="center">欢迎你，#(currentUser.username)</h2>
+	<div align="center" class="addPane" hidden="hiddeen">
+		
+			<div>学号: <input type="text" name="stu_num" required="required"></div>
+			<div>姓名: <input type="text" name="stu_name" required="required"></div>
+			<div>生日: <input type="date" name="birth_day" required="required"></div>
+			<div>性别: <input type="text" name="sex"></div>
+			<!-- <div align="center"> <button type="button" onclick="addStudent()">提交</button> </div> -->
+			<form class="upload_form" enctype="multipart/form-data" method="post" action="">
+				上传头像:
+				<div style="margin-top: 5px;"> <input type="file" class="stu_photo_file" name="stu_photo_file" accept="image/*"/></div>
+			</form>
+			<button class="class_btn" onclick="addloadFiles()">上传</button>
+			<input hidden="hidden" id="stu_photo">
+			
+	</div>
+	
+	<div align="center" id="table-head">
+		<form method="post" action="student_man">
+			<h4>学生信息查询</h4>
+			学号/姓名<input type="text" name="keyword" value="" id="keyword">
+			<button type="button" onclick="queryStudent()" >搜索</button>
+			
+		</form>
+		<table width="60%" border="black solid 1px" >
+		<thead>
+			<tr>
+				<th id="check_all_td">全选<input id="check_all" type='checkbox'/></th>
+				<th>学号<a class="od-by-num-asc" href="javascript://" orderBy="s_num" orderWay="asc"> ↑ </a>
+					<a class="od-by-num-desc" href="javascript://" orderBy="s_num" orderWay="desc"> ↓ </a></th>
+				<th>姓名<a class="od-by-name-asc" href="javascript://" orderBy="s_name" orderWay="asc"> ↑ </a>
+					<a class="od-by-name-desc" href="javascript://" orderBy="s_name" orderWay="desc"> ↓ </a></th>
+				<th>出生日期<a class="od-by-birthday-asc" href="javascript://" orderBy="s_birthday" orderWay="asc"> ↑ </a>
+					<a class="od-by-birthday-desc" href="javascript://" orderBy="s_birthday" orderWay="desc"> ↓ </a></th>
+				<th>性别<a class="od-by-sex-asc" href="javascript://" orderBy="s_sex" orderWay="asc"> ↑ </a>
+					<a class="od-by-sex-desc" href="javascript://" orderBy="s_sex" orderWay="desc"> ↓ </a></th>
+				<th>操作</th>
+			</tr>
+		</thead>
+		<tbody>
+		</tbody>
+			
+		</table>
+		
+		<div align="center">
+			<button type="button" id="batchDelBtn">批量删除</button>
+			<button id="addStuBtn" onclick="openAddPane()">添加学生</button>
+		</div>
+	</div>
+	
+	
+	
+	<div style="text-align:center" id="pagingPane">
+		<a href="javascript://" onclick="goToPage(1)">首页</a>
+		<a href="javascript://" onclick="goToPage($('#pageNo').val()*1 - 1)">上一页</a>
+		<a href="javascript://" onclick="goToPage($('#pageNo').val()*1 + 1)">下一页</a>
+		<a href="javascript://" onclick="goToPage($('#lastPage').val()*1)">末页</a>
+	</div>
+	
+	<div style="text-align:center" id="paggingSelect">
+		<select id="page_size_sel" onchange="queryWithPageSize($(this).val())">
+		<option value="5">5</option>
+		<option value="10">10</option>
+		<option value="15">15</option>
+		<option value="20">20</option>
+		</select>
+	</div>
+	
+	<form method="post" action="orderstu" id="search_form">
+			<input hidden="hidden" name="orderBy" value="">
+			<input hidden="hidden" name="orderWay" value="">
+			<input hidden="hidden" name="pageNo" value="1" id="pageNo">
+			<input hidden="hidden" name="pageSize" value="">
+			<input hidden="hidden" name="lastPage" value="" id="lastPage">
+	</form>
+	
+	<div id="view_stu" hidden="hidden">
+			<h5>查看学生信息</h5>
+			<div><img width="200" id="view_stu_photo"/></div>
+			<div>学号:  <span id="view_stu_num"></span></div>
+			<div>姓名:  <span id="view_stu_name"></span></div>
+			<div>生日:  <span id="view_birth_day"></span></div>
+			<div>性别:  <span id="view_sex"></span></div>
+			
+			<!-- <button type="button" onclick="updateStudent()">修改</button> !-->
+	</div>
+	
+	<div class="updatePane" hidden="hidden">
+		
+			<h5>修改学生信息</h5>
+			学号: <input type="text" name="stu_num" required="required">
+			姓名: <input type="text" name="stu_name" required="required">
+			生日: <input type="date" name="birth_day" required="required">
+			性别: <input type="text" name="sex">
+			<form class="upload_form" enctype="multipart/form-data" method="post" action="">
+				上传头像:
+				<div style="margin-top: 5px;"> <input type="file" class="stu_photo_file" name="stu_photo_file" accept="image/*"/></div>
+			</form>
+			<button class="class_btn" onclick="uploadFiles()">上传</button>
+			<input hidden="hidden" id="stu_photo2">
+			<!-- <button type="button" onclick="updateStudent()">修改</button> !-->
+	
+	</div>
+
+</body>
+</html>
+
+<script>
+	var saveDialog=null;
+	function addloadFiles(){
+		var formData = new FormData($(".addPane .upload_form")[0]);	//创建一个form类型的数据
+		formData.append("file", $(".addPane .stu_photo_file")[0].files);	//获取上传文件的数据
+		$.ajax({
+			type : "post",
+			url : "#(ctxPath)/student/uploadFiles",
+			processData : false,
+			contentType : false,
+			data : formData,
+			success : function(ret){
+				if (ret.indexOf("error:") > -1){
+					alert(ret.substring(6));
+					return ;
+				}
+				//保存文件路径
+				$("#stu_photo").val(ret);
+				alert("文件上传成功");
+			},
+			error : function(err){
+				alert(err);
+			}
+		})
+		
+	}
+	function uploadFiles(){
+		var formData = new FormData($(".updatePane .upload_form")[0]);	//创建一个form类型的数据
+		formData.append("file", $(".updatePane .stu_photo_file")[0].files);	//获取上传文件的数据
+		$.ajax({
+			type : "post",
+			url : "#(ctxPath)/student/uploadFiles",
+			processData : false,
+			contentType : false,
+			data : formData,
+			success : function(ret){
+				if (ret.indexOf("error:") > -1){
+					alert(ret.substring(6));
+					return ;
+				}
+				//保存文件路径
+				$("#stu_photo2").val(ret);
+				alert("文件上传成功");
+			},
+			error : function(err){
+				alert(err);
+			}
+		})
+		
+	}
+	
+	
+
+	$("#check_all").click(function(){
+		var checked = $(this).is(":checked");
+		$(".cbox").prop("checked", $(this).prop("checked"));
+	})
+	$("#table-head tr:first a").click(function(){
+	
+		var orderBy = $(this).attr("orderBy");
+		var orderWay = $(this).attr("orderWay");
+
+		$("input[name='orderBy']").val(orderBy);
+		$("input[name='orderWay']").val(orderWay);
+		console.log($("input[name='orderBy']").val());
+		console.log($("input[name='orderWay']").val());
+		
+		goToPage($("input[name='pageNo']").val());
+	})
+	
+	function goToPage(pageNo){
+		console.log(pageNo);
+		if (pageNo < 1){
+			alert("已经是第一页了!");
+			return ;
+		}
+		console.log(pageNo);
+		$("input[name='pageNo']").val(pageNo);
+		queryStudent()
+		//$("#page_size_sel").val(${pageSize});
+	}
+	
+	function goToPage(pageNo){
+		if (pageNo < 1){
+			alert("已经是第一页了!");
+			return ;
+		}
+		console.log(pageNo);
+		$("input[name='pageNo']").val(pageNo);
+		queryStudent()
+		
+	}
+	
+	function queryWithPageSize(pageSize){
+		console.log("^^^^^^^^^^^^^^^^^^^^^^" + pageSize);
+		$("input[name='pageSize']").val(pageSize);
+		goToPage(1);
+		
+	}
+	
+	/*
+	 * 查询
+	 */
+	function queryStudent(){
+		//var keyword = $.trim($("keyword").val());
+		var keyword = $("#keyword").val();
+		//console.log(keyword);
+		var orderParam1 = $("input[name='orderBy']").val();
+		var orderParam2 = $("input[name='orderWay']").val();
+		var paggingParam1 = $("input[name='pageNo']").val();
+		var paggingParam2 = $("input[name='pageSize']").val();
+		var tbody = $("#table-head table tbody");
+		
+		$.post("#(ctxPath)/student/queryStudent", {
+			keyword: keyword, 
+			orderParam1 : orderParam1,
+			orderParam2 : orderParam2,
+			paggingParam1 : paggingParam1,
+			paggingParam2 : paggingParam2
+		}, function(stuJson){
+			var stuArray = stuJson.stuArray;
+			
+			console.log(stuJson);
+			$("input[name='pageNo']").val(stuJson.paggingParam1);
+			$("input[name='pageSize']").val(stuJson.paggingParam2);
+			$("input[name='lastPage']").val(stuJson.pageCount);
+			
+			var tmp = $("#paggingSelect select").children().clone();
+			$("#paggingSelect").contents().filter(function(){
+				return this.nodeType == 3;
+			}).remove();
+			$("#paggingSelect select").before("当前是第"+stuJson.paggingParam1+"页，每页");
+			$("#paggingSelect select").after("条，共"+stuJson.pageCount+"页，共"+stuJson.paggingParam2+"条数据");
+			
+			tbody.html("");
+			$.each(stuArray, function(index, value){
+				tbody.append("<tr><td align='center'><input class='cbox' type='checkbox' value='"+value.s_num+"' /></td><td>" + "<a href='javascript://' onclick='viewStudent(" + value.s_num + ")'>"+value.s_num+"</a></td>" + 
+					"<td>" + value.s_name + "</td>" + 
+					"<td>" + value.s_birthday + "</td>" + 
+					"<td>" + value.s_sex + "</td>" + 
+					"<td><a href='javascript://' onclick='deleteStudent("+value.s_num+")'> 删除 </a>" + 
+					"<a href='javascript://' onclick='openUpdatePane("+value.s_num+")'> 修改 </a> </td>" + "</tr>")
+			});
+		})
+	}
+	
+	/*
+	 * 添加
+	 */
+	 function openAddPane(){
+			var d = dialog({
+				title : "新增学生信息",
+				content: $(".addPane"),
+				yesText : "添加",	//不管用
+				noText : "关闭",		//不管用
+				yesClose : false 	//不管用
+			}, function(){
+				var isInputNull = true;
+				$.each($(".addPane input"), function(){
+					if ($(this).val().trim() == null || $(this).val().trim() == ""){
+						isInputNull = false;
+						//return false;
+					}
+				})
+				if (!isInputNull){
+					addStudent();
+					this.close();
+				}else{
+					alert("输入框不能为空");
+				}
+				
+			}, function(){
+				this.close();
+			});
+			d.showModal();
+		}
+	 function addStudent(){
+			
+			
+			var stuNum = $(".addPane input[name='stu_num']").val();
+			var stuName = $(".addPane input[name='stu_name']").val();
+			var birthDay = $(".addPane input[name='birth_day']").val();
+			var sex = $(".addPane input[name='sex']").val();
+			var stuPhoto = $("#stu_photo").val();
+			$("#stu_photo").val("");
+			$.post("#(ctxPath)/student/addStudent", {'s_num' : stuNum, 's_name' : stuName, 's_birthday' : birthDay, 
+				's_sex' : sex, 'stu_photo' : stuPhoto}, function(result){
+				//if (result.status == 0){
+				//	alert("添加成功");
+				//	queryStudent();	
+				//}else{
+				//	alert(result.status)
+				//}
+				if (result.status == 0){
+					alert("添加成功");
+					//alert(result.rec);
+					queryStudent();
+				}else{
+					alert("添加失败，错误: " + result.status);
+				}
+				
+				$(".addPane input[name='stu_num']").val("");
+				$(".addPane input[name='stu_name']").val("");
+				$(".addPane input[name='birth_day']").val("");
+				$(".addPane input[name='sex']").val("");
+				$("#stu_photo").val();
+				return ;
+			});
+		}
+	
+	/*
+	 * 删除
+	 */
+	function deleteStudent(stuNum){
+		if (confirm("真的要删除该学生么？\n") == true){
+			$.post("#(ctxPath)/student/deleteStudent", {'s_num' : stuNum}, function(result){
+				if (result.status == 0){
+					alert("删除成功");
+				}else{
+					alert(result.error);
+				}
+				//alert("删除成功" + result.rec)
+				queryStudent();
+			});
+				
+			return true;
+		}else{
+			return false;
+		}
+	}
+	
+	/*
+	 * 批量删除
+	 */
+	 $("#batchDelBtn").click(function(){
+			if ($("input:checkbox:checked").length == 0){
+				alert("你没有选中学生");
+				return ;
+			}
+			if (confirm("正在进行批量操作，是否继续？\n") == true){
+				var str = "";
+				$.each($("input:checkbox:checked"), function(){
+					str += $(this).val() + " ";
+				})
+				$.post("#(ctxPath)/student/deleteStudent", {'s_num' : str}, function(result){
+					if (result.status == 0){
+						alert("批量删除成功");
+					}else{
+						alert(result.error);
+					}
+					queryStudent();
+					$("#check_all").prop("checked", false);
+				});
+				
+				return true;
+			}else{
+				return false;
+			}
+			
+				
+		});
+	
+	 function viewStudent(stuNum){
+		 	$("#view-stu img").attr("src", "");
+			$.get('#(ctxPath)/student/queryStudent', {"keyword" : stuNum}, 
+					function (result){
+				console.log(result);
+				console.log(result.status);
+				if (result.status == 0){
+					var stuArray = result.stuArray[0];
+					$("#view_stu div span:eq(0)").text(stuArray.s_num);
+					$("#view_stu div span:eq(1)").text(stuArray.s_name);
+					$("#view_stu div span:eq(2)").text(stuArray.s_birthday);
+					$("#view_stu div span:eq(3)").text(stuArray.s_sex);
+					$("#view_stu img").attr("src","#(ctxPath)" + stuArray.s_photo);
+					$("#view_stu img").bind("error", function(){
+						$(this).attr("src", "#(ctxPath)/static/img/default_student.jpg");
+					})
+					var d = dialog({
+						title : "浏览学生信息",
+						content : $("#view_stu")
+					})
+					d.showModal();
+				}else{
+					alert("失败 " + result.status)
+				}
+			})
+		}
+	/**
+	 * 修改
+	 */
+	//展开窗口
+	function openUpdatePane(stuNum){
+		/*
+		$(".updatePane input:nth-child(2)").attr("value", stuNum);
+		var pane = $(".updatePane");
+		if (pane.attr("hidden") == "hidden"){
+			pane.removeAttr("hidden");
+		}else{
+			pane.attr("hidden", "hidden");
+		}*/
+			
+		$(".updatePane input:nth-child(2)").attr("value", stuNum);
+		var d = dialog({
+			title : "修改学生信息",
+			content: $(".updatePane"),
+			yesText : "修改",
+			noText : "关闭"
+		}, function(){
+			updateStudent();
+			this.close();
+		}, function(){
+			this.close();
+		});
+		d.showModal();
+	}
+	function updateStudent(){
+		var stuNum = $(".updatePane input[name='stu_num']").val();
+		var stuName = $(".updatePane input[name='stu_name']").val();
+		var birthDay = $(".updatePane input[name='birth_day']").val();
+		var sex = $(".updatePane input[name='sex']").val();
+		var stuPhoto = $("#stu_photo2").val();
+		$.post("#(ctxPath)/student/updateStudent", {'s_num' : stuNum, 's_name' : stuName, 's_birthday' : birthDay, 
+			's_sex' : sex, "s_photo" : stuPhoto}, function(result){
+			if (result.status == 0){
+				alert("修改成功");
+				queryStudent();
+			}else{
+				alert("修改失败: " + result.status);
+			}
+			$(".updatePane input[name='stu_num']").val("");
+			$(".updatePane input[name='stu_name']").val("");
+			$(".updatePane input[name='birth_day']").val("");
+			$(".updatePane input[name='sex']").val("");
+			$("#stu_photo2").val("");
+			$(".updatePane").attr("hidden", "hidden");
+			
+		});
+	} 
+	
+	
+	$(function(){
+		queryStudent();
+	})
+</script>

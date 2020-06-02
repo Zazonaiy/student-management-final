@@ -1,0 +1,224 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>#(sysTitle)-登录</title>
+    <link rel="stylesheet" href="#(ctxPath)/static/css/login.css">
+    <link rel="stylesheet" href="#(ctxPath)/static/font/iconfont.css">
+    <script src="#(ctxPath)/static/js/jquery-3.4.1.js"></script>
+    <link rel="shortcut icon" href="#" />
+    
+    <style type="text/css">
+    	#ver-code{
+    		display:flex;
+    		flex-direction: row;
+    		background: rgba(0,0,0,0.2);
+    		height: 70px;
+    		width: 459px;
+    		border-radius: 10px;
+    		justify-items: space-between;
+    		margin: 20px;
+    		padding-top: 11px;
+    		padding-left: 20px;
+    		margin-left: 40px;
+    		
+    	}
+    	#ver-code input{
+    		background: rgba(0,0,0,0.2);
+    		height: 58px;
+    		width: 160px;
+    		padding-left: 20px;
+    		color:#999;
+    		font-size:18px;
+    		border:0;
+    		
+    		margin-left:20px;
+    	}
+    	#ver-code img{
+    		height: 58px;
+    		width: 165px;
+    		right: 20px;
+    		border:0;
+    		margin-left :50px;
+    	}
+    </style>
+</head>
+<body>
+
+
+	<div class="container">
+        <!-- 头部 -->
+        <div class="head">
+            <image src="./static/img/1.jpg" id="headimg"></image>
+            <text>法号壹猛男</text>
+            <text>四川省乐山市</text>
+        </div>
+
+        <form action="validate" method="post" onsubmit="return checkForm()">
+            <div class="login">
+                <!--用户名-->
+                <div class="login-pane">
+                    <span class="iconfont icon-denglu"></span>
+                    <input placeholder="请输入用户名/手机号" type="text" name="username" value="">
+                    <span class="iconfont icon-cuowu error" hidden="true"></span>
+                </div>
+                <!--密码-->
+                <div class="login-pane">
+                    <span class="iconfont icon-denglumima-"></span>
+                    <input placeholder="请输入密码" type="password" name="password" value="">
+                    <span class="iconfont icon-cuowu error" hidden="true"></span>
+                </div>
+            	<!-- 验证码  -->
+            	<div hidden="hidden">
+            	<div id="ver-code">
+                	<input placeholder="请输入验证码" type="text" name="password" value="" id="vercode-input">
+                	<img src="" id="vercode-img" onclick="getVercode()">
+                	<input value="" id="isVerPass" hidden="hidden">
+            	</div>	
+            	</div>
+            </div>
+
+         </form>   
+		
+			
+            <!--登录按钮-->
+            <button class="login-btn" type="button" onclick="validate()">登录</button>
+            <a href="#(ctxPath)/login/toUpdateUser" style="color:skyblue;">修改密码</a>
+        
+            <!--注册按钮-->
+            <button class="login-btn reg-btn" type="button" onclick="reigister()">注册</button>
+
+    </div>
+</body>
+</html>
+<script>
+	$(function(){
+		$(".login .error").attr("hidden", "hidden");
+	})
+	
+	function reigister(){
+		$(location).attr("href", "#(ctxPath)/login/toRegister");
+	}
+	
+	function getVercode(){
+		var time = new Date().getTime();
+		//$("#vercode-img").attr("src", "#(ctxPath)/login/getVercode");
+		$.post("#(ctxPath)/login/getVercode", {}, function(ret){
+			//$("#vercode-img").attr("src", "#(ctxPath)"+ret);
+			$("#vercode-img").attr("src", "#(ctxPath)/login/getVercode");
+		})
+	}
+	
+	function doVerification(){
+		var inputCode = $("#vercode-input").val();
+		$.post("#(ctxPath)/login/doVerification", {"inputCode" : inputCode}, function(ret){
+			console.log("status: " + ret.status);
+			if (ret.status == 0){
+				$("#isVerPass").val("0");
+			}else{
+				$("#isVerPass").val("");
+			}
+		})
+		console.log("isPass" + $("#isVerPass").val("0"));
+	}
+	
+	var failLoginCount = 0;
+	function validate(){
+		var vercode = $("#ver-code").parent();
+		
+		$(".login .error").attr("hidden", "hidden");
+		var username = $(".login input:first").val();
+		var password = $(".login input:eq(1)").val();
+		if (username == "" || password == ""){
+			if (username == ""){
+				$(".login .error:first").attr("hidden", false);
+			}
+			if (password == ""){
+				$(".login .error:last").attr("hidden", false);
+			}
+			alert("用户名或密码不能为空");
+			return ;
+		}
+		if (!vercode.is(":hidden")){
+			doVerification();
+			if ($("#isVerPass").val() != 0){
+				alert("验证码错误");
+				$(".login input:eq(1)").val("");
+				return ;
+			}else{
+				$("#isVerPass").val("");
+			}
+		}
+		$.post("#(ctxPath)/login/doLogin", {"username" : username, "password" : password}, function(ret){
+			if (ret.status == 0){
+				//登录成功
+				failLoginCount = 0;
+				$(location).attr("href", "#(ctxPath)/login/toHome");
+				return ;
+			}else{
+				if (ret.status == 100){
+					alert("登陆失败: 系统错误 " + ret.status);
+				}else if (ret.status == 2){
+					$(".login .error:last").attr("hidden", false);
+					alert("密码错误");
+					failLoginCount++;
+				}else if (ret.status == 1){
+					$(".login .error:first").attr("hidden", false);
+					alert("用户名不存在")
+					failLoginCount++;
+					
+				}
+				
+				if (failLoginCount >= 3){
+					getVercode();
+					vercode.attr("hidden", false);
+				}
+				var password = $(".login input:last").val("");
+				return ;
+			}
+		});
+	}
+	
+
+
+
+
+
+
+
+
+
+	
+//	$(function(){
+//		
+		/*
+		if (a == false){
+			$(".error").attr("hidden", false);
+			$("input:last").attr("placeholder", "用户名或密码错误");
+		}*/
+//		if (a == 1){
+//			$(".error:first").attr("hidden", false);
+//			$("input:first").attr("placeholder", "用户名不存在");
+//		}
+//		if (a == 2){
+//			$(".error:last").attr("hidden", false);
+//			$("input:last").attr("placeholder", "密码错误");
+//		}
+//	});
+//	function checkForm(){
+//		var inputs = $("input").val();
+		
+//		if (inputs == "" || inputs == undefined || inputs == null){
+//			alert("账号和密码不能为空哦");
+//			return false;
+//		}
+//		return true;
+//	}
+//	$(".reg-btn").click(function(){
+//		$(window).attr('location','Register.jsp');
+//	})
+	
+</script>

@@ -1,0 +1,94 @@
+body{
+    height:100%;
+    width: 100%;
+}
+.container{
+    height:100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(0deg, #395ecb 0%, #3657be 35%, #242161 80%, #1a0531 100%);
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 200px 0;
+    box-sizing: border-box;
+}
+.head{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /*padding-top:15%;*/
+    color:#ddd;
+    font-size: 32px;
+}
+.register{
+    padding: 25px 65px;
+  
+    position: relative;
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+}
+.register-pane{
+    background: rgba(0,0,0,0.2);
+    height: 70px;
+    border-radius: 70px;
+    margin: 20px;
+    padding-top: 11px;
+}
+.register input{
+    background: rgba(0,0,0,0.2);
+    height: 80%;
+    padding-left: 40px;
+    color:#999;
+    font-size:30px;
+    border:0;
+    width: 70%;
+    margin-left:20px;
+}
+.register span{
+    width: 55px;
+    height: 50px;
+  
+    position: relative;
+    font-size: 40px;
+    left:20px;
+    top:5px;
+    color:#ddd;
+}
+.register .tiaokuan{
+    font-size: 20px;
+    width: 200px;
+}
+.register .tiaokuan-pane input{
+    height: 30px;
+    width: 30px;
+}
+.register .tiaokuan-pane{
+    display: flex;
+    flex-direction: row;
+    text-align: center;
+    padding-top: 20px;
+}
+.register .error{
+    left:0px;
+    top:7px;
+    color: #FF66CC;
+}
+.register-btn .btn{
+    font-size: 32px;
+    font-family: 宋体;
+    height:70px;
+    width: 260px;
+    background: #157AD6;
+    color:white;
+    border-radius: 20px;
+    margin-top: 20px;
+    border: 0;
+}
+.register-btn .btn:hover{
+    opacity: 0.7
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>班级管理</title>
+<script src="#(ctxPath)/static/js/jquery-3.4.1.js"></script>
+<script src="#(ctxPath)/static/js/vue.min.js"></script>
+<!-- bootstrap -->
+<script src="#(ctxPath)/static/js/bootstrap/bootstrap.js"></script>
+<link rel="stylesheet" href="#(ctxPath)/static/css/bootstrap/bootstrap.css">
+<style type="text/css">
+	.center{
+		text-align: center;
+	}
+	#classModal input{
+		width: 174px;
+	}
+</style>
+</head>
+<body>
+<div id="main-div" align="center">
+	<h1 class="center">#(sysTitle)</h1>
+	<h2 class="center">欢迎你, #(currentUser.username)</h2>
+
+	<div style="width: 80%;" >
+	<div id="table-head" align="center">
+		
+		<table class="table">
+		<thead>
+			<tr>
+				
+				<th style="text-align: center;">id：</th>
+				<th style="text-align: center;">访问路径：</th>
+				<th style="text-align: center;">操作时间：</th>
+				
+			</tr>
+			
+		</thead>
+		<tr v-if="dialogQuery.dialogArray==null"><td colspan="5">loading...</td></tr>
+		<tbody v-for="dialog in dialogQuery.dialogArray">
+			<tr>
+				<td align="center">{{dialog.id}}</td>
+				<td align="center">{{dialog.t_action}}</td>
+				<td align="center">{{dialog.t_time}}</td>
+			</tr>
+		</tbody>
+		</table>
+	</div>
+	</div>
+
+		
+		<nav class="navbar navbar-inverse navbar-fixed-bottom">
+		<div class="container">
+			<div class="span6">
+				<ul class="nav nav-tabs" >
+					<li class="active"><a href="#">Management</a></li>
+                	<li><a href="#(ctxPath)/student">学生管理</a></li>
+                	<li><a href="#(ctxPath)/student/class">班级管理</a></li>
+                	<li><a href="#(ctxPath)/dialog">查看日志</a></li>
+                	<li><a href="javascript://" @click="clearDialog">清空日志</a></li>
+				</ul>
+			</div>
+		</div>
+		</nav>
+	</div>
+</div>
+
+</body>
+</html>
+
+<script>
+	var vue = new Vue({
+		el : "#main-div",
+		data : {
+			dialogQuery : {
+				dialogArray : [],
+			},
+		},
+		methods : {
+			queryDialog : function(){
+				$.post("#(ctxPath)/dialog/queryDialog", {}, response=>{
+					this.dialogQuery.dialogArray = response.dialogArray;
+				});
+			},
+			clearDialog : function(){
+				$.post("#(ctxPath)/dialog/clearDialog", {}, response=>{
+					if (response.status == 0){
+						alert("日志清理成功");
+					}else{
+						console.log(response);
+						alert("日志清除失败");
+					}
+				})
+			}
+		},
+		mounted : function(){
+			this.queryDialog();
+		}
+	})
+</script>

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>#(sysTitle)</title>
+<!-- iview样式 -->
+<link rel="stylesheet" href="//unpkg.com/view-design/dist/styles/iview.css">
+
+<script src="#(ctxPath)/static/js/jquery-3.4.1.js"></script>
+<script src="#(ctxPath)/static/js/vue.min.js"></script>
+<!-- bootstrap -->
+<script src="#(ctxPath)/static/js/bootstrap/bootstrap.js"></script>
+<link rel="stylesheet" href="#(ctxPath)/static/css/bootstrap/bootstrap.css">
+<!-- 引入iview组件库 -->
+<script src="//unpkg.com/view-design/dist/iview.min.js"></script>
+
+
+<style type="text/css">
+	.center{
+		text-align: center;
+	}
+	#batchDelBtn, #addStuBtn{
+		margin-top: 10px;
+		height : 40px;
+		weight : 400px;
+	}
+	#addPane{
+		text-align: center;
+	}
+	#addPane input, #updatePane input, #view_stu input{
+		padding: 1px 0px;
+		width: 174px;
+		height: 25px;
+	}
+	.currentOrder{
+		color:red;
+	}
+	
+	
+</style>
+</head>
+<body>
+<div id="main-div">
+	<h1 class="center">#(sysTitle)</h1>
+	<h2 class="center">欢迎你，#(currentUser.username)</h2>
+	
+	
+	<div id="table-head" align="center">
+		<div>
+			<h4>学生信息查询</h4>
+			学号/姓名: <input type="text" v-model="keyword" >
+			班级: <select v-model="classId">
+				<option></option>
+				#for (clazz : classList)
+					<option value="#(clazz.id)">#(clazz.class_full_name)</option>
+				#end
+			</select>
+			<button @click="queryStudent">搜索</button>
+		</div>
+		
+		<div>
+			<form id="import_stu_form" enctype="multipart/form-data" method="post" action="">
+			 <div style="margin-top: 5px"> 
+			 选择Excel文件：<input type="file" id="stu_excel" name="stu_excel" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" /></div>
+			</form>
+			<button @click="importStudent">导入</button>
+		</div>
+		
+		<table width="60%" border="black solid 1px" >
+		<thead>
+			<tr>
+				<th id="check_all_td">全选<input id="check_all" type='checkbox' v-model="stuCheck.isCheckAll" @change="checkAll"/></th>
+				<th>学号<a :class="{currentOrder : currentOrder.orderParam1=='s_num'&&currentOrder.orderParam2=='asc'}" href="javascript://" @click="orderStudentList('s_num','asc')"> ↑ </a>
+					<a :class="{currentOrder : currentOrder.orderParam1=='s_num'&&currentOrder.orderParam2!='asc'}" href="javascript://" @click="orderStudentList('s_num','desc')"> ↓ </a></th>
+				<th>姓名<a :class="{currentOrder : currentOrder.orderParam1=='s_name'&&currentOrder.orderParam2=='asc'}" href="javascript://" @click="orderStudentList('s_name','asc')"> ↑ </a>
+					<a :class="{currentOrder : currentOrder.orderParam1=='s_name'&&currentOrder.orderParam2!='asc'}" href="javascript://" @click="orderStudentList('s_name','desc')"> ↓ </a></th>
+				<th>出生日期<a :class="{currentOrder : currentOrder.orderParam1=='s_birthday'&&currentOrder.orderParam2=='asc'}" href="javascript://" @click="orderStudentList('s_birthday','asc')"> ↑ </a>
+					<a :class="{currentOrder : currentOrder.orderParam1=='s_birthday'&&currentOrder.orderParam2!='asc'}" href="javascript://" @click="orderStudentList('s_birthday','desc')" > ↓ </a></th>
+				<th>性别<a :class="{currentOrder : currentOrder.orderParam1=='s_sex'&&currentOrder.orderParam2=='asc'}" href="javascript://" @click="orderStudentList('s_sex','asc')"> ↑ </a>
+					<a :class="{currentOrder : currentOrder.orderParam1=='s_sex'&&currentOrder.orderParam2!='asc'}" href="javascript://" @click="orderStudentList('s_sex','desc')"> ↓ </a></th>
+				<th>班级编号</th>
+				<th>班级名称</th>
+				<th>入学年份</th>
+				<th>负责老师</th>
+				<th>操作</th>
+			</tr>
+		</thead>
+		<tr v-if="stuQueryResult.stuArray==null"><td colspan="5">loading...</td></tr>
+		<tbody v-for="stu in stuQueryResult.stuArray">
+			<tr>
+				<td align="center"><input type="checkbox" v-model="stuCheck.checkedValues" :value="stu.s_num"></td>
+				<td align="center"><a href="javascript://" @click="openViewStudent(stu.s_num)">{{stu.s_num}}</a></td>
+				<td align="center">{{stu.s_name}}</td>
+				<td align="center">{{stu.s_birthday}}</td>
+				<td align="center">{{stu.s_sex}}</td>
+				<th>{{stu.class_no}}</th>
+				<th>{{stu.class_name}}</th>
+				<th>{{stu.enter_year}}</th>
+				<th>{{stu.u_name}}</th>
+				
+				<td align="center"><a href='javascript://' @click='deleteStudent(stu.s_num)'> 删除   </a>|
+				<a href='javascript://' @click="openUpdatePane(stu.s_num)"> 更新 </a></td>
+
+			</tr>
+		</tbody>
+			
+		</table>
+		
+		<div align="center">
+			<button id="batchDelBtn" @click="deleteStudentBatch">批量删除</button>
+			<button id="addStuBtn" @click="openAddPane">添加学生</button>
+		</div>
+	</div>
+	
+	<!-- 分页 -->
+	<div style="text-align:center" id="pagingPane">
+		<a href="javascript://" @click="goToPage('1')">首页</a>
+		<a href="javascript://" @click="goToPage(queryPage.currentPage-1)">上一页</a>
+		<a href="javascript://" @click="goToPage(queryPage.currentPage+1)">下一页</a>
+		<a href="javascript://" @click="goToPage(stuQueryResult.pageCount)">末页</a>
+	</div>
+	<div style="text-align:center" id="paggingSelect">
+		每页 
+		<select id="page_size_sel" @change="queryStudent" v-model="queryPage.pageSize">
+		<option value="5">5</option>
+		<option value="10">10</option>
+		<option value="15">15</option>
+		<option value="20">20</option>
+		</select> {{stuQueryResult.paggingParam2}}条，共{{stuQueryResult.pageCount}}页，共{{stuQueryResult.recCount}}条数据
+		<div>  当前{{queryPage.currentPage}}  页</div>
+	</div>
+	
+	<!-- 弹框 -->
+	<!-- 新增 -->
+	<Modal v-model="addStuModal.show_stu_form" width="360" id="addPane" @on-cancel="clearAddStudentModal">
+		<p slot="header" style="color:#f60;text-align:center">
+		<Icon type="ios-information-circled"></Icon>
+		<span>新增学生信息</span>
+		</p>
+		<div style="text-align:center">
+			<div>学号: <input type="text" name="stu_num" required="required" v-model="addStuModal.stuNum"></div>
+			<div>姓名: <input type="text" name="stu_name" required="required" v-model="addStuModal.stuName"></div>
+			<div>生日: <input type="date" name="birth_day" required="required" v-model="addStuModal.stuBirth"></div>
+			<div>性别: <input type="text" name="sex" v-model="addStuModal.stuSex"></div>
+			<form class="upload_form" enctype="multipart/form-data" method="post" action="">
+				上传头像:
+				<div style="margin-top: 5px;"> 
+					<input type="file" class="stu_photo_file" name="stu_photo_file" accept="image/*" @change="setLoadImgEventItem"/>
+				</div>
+				<button @click="loadFiles" type="button">点击上传</button>
+				
+			</form>
+			
+			
+		</div>
+		<div slot="footer" style="text-align: center">
+            <Button size="large" type="primary" @click="addStudent" >保存</Button>
+        </div>
+	</Modal>
+	<!-- 更新 -->
+	<Modal v-model="updateStuModal.show_stu_form" width="360" id="updatePane" @on-cancel="clearUpdateStudentModal">
+		<p slot="header" style="color:#f60;text-align:center">
+		<Icon type="ios-information-circled"></Icon>
+		<span>更新学生信息</span>
+		</p>
+		<div style="text-align:center">
+			<div>学号: <input type="text" name="stu_num" required="required" v-model="updateStuModal.stuNum" disabled="disabled"></div>
+			<div>姓名: <input type="text" name="stu_name" required="required" v-model="updateStuModal.stuName"></div>
+			<div>生日: <input type="date" name="birth_day" required="required" v-model="updateStuModal.stuBirth"></div>
+			<div>性别: <input type="text" name="sex" v-model="updateStuModal.stuSex"></div>
+			<form class="upload_form" enctype="multipart/form-data" method="post" action="">
+				上传头像:
+				<div style="margin-top: 5px;"> 
+					<input type="file" class="stu_photo_file" name="stu_photo_file" accept="image/*" @change="setLoadImgEventItem"/>
+				</div>
+				<button @click="loadFiles" type="button">点击上传</button>
+				
+			</form>		
+		</div>
+		<div slot="footer" style="text-align: center">
+            <Button size="large" type="primary" @click="updateStudent">保存</Button>
+        </div>
+	</Modal>
+	<!-- 查看 -->
+	<Modal v-model="viewStuModal.show_stu_form" width="360" id="view_stu" @on-cancel="clearViewStudentModal">
+		<p slot="header" style="color:#f60;text-align:center">
+		<Icon type="ios-information-circled"></Icon>
+		<span>浏览学生信息</span>
+		</p>
+		<div style="text-align:center">
+			<div><img width="200" :src="viewStuModal.stuPhoto" @error="getDefaultStuPhoto"></div>
+			<div>学号: <input type="text" name="stu_num" required="required" v-model="viewStuModal.stuNum" readonly></div>
+			<div>姓名: <input type="text" name="stu_name" required="required" v-model="viewStuModal.stuName" readonly></div>
+			<div>生日: <input type="text" name="birth_day" required="required" v-model="viewStuModal.stuBirth" readonly></div>
+			<div>性别: <input type="text" name="sex" v-model="viewStuModal.stuSex" readonly></div>
+		</div>
+		<div slot="footer" style="text-align: center">
+            <Button size="large" type="primary" @click="closeViewStudent">关闭</Button>
+        </div>
+	</Modal>
+	
+	<nav class="navbar navbar-inverse navbar-fixed-bottom">
+		<div class="container">
+			<div class="span6">
+				<ul class="nav nav-tabs" >
+					<li class="active"><a href="#">Management</a></li>
+                	<li><a href="#(ctxPath)/student">学生管理</a></li>
+                	<li><a href="#(ctxPath)/student/class">班级管理</a></li>
+                	<li><a href="#(ctxPath)/dialog">查看日志</a></li>
+                	<li><a href="javascript://" @click="clearDialog">清空日志</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+	
+	
+</div>	
+</body>
+</html>
+
+<script>
+	
+	var vue = new Vue({
+		//el: "#table-head",
+		el: "#main-div",
+		data : {
+			classId : "",
+			keyword : "",
+			stuQueryResult : {
+				stuArray : null
+			},
+			queryPage : {
+				currentPage : 1,
+				pageSize : 5
+			},
+			currentOrder : {
+				orderParam1 : "s_num",
+				orderParam2 : "asc"
+			},
+			stuCheck : {
+				isCheckAll : false,
+				checkedValues : []
+			},
+			addStuModal : {
+				show_stu_form : false,
+				//modal_loading: false,
+				stuNum : "",
+				stuName : "",
+				stuBirth : "",
+				stuSex : "",
+				//stuPhoto : ""
+			},
+			updateStuModal : {
+				show_stu_form : false,
+				//modal_loading: false,
+				stuNum : "",
+				stuName : "",
+				stuBirth : "",
+				stuSex : "",
+				//stuPhoto : ""
+			},
+			viewStuModal : {
+				show_stu_form : false,
+				//modal_loading: false,
+				stuNum : "",
+				stuName : "",
+				stuBirth : "",
+				stuSex : "",
+				stuPhoto : ""
+			},
+			imgData : {
+				accept: 'image/gif, image/jpeg, image/png, image/jpg',
+				imgUrl : "",
+				loadImgEventItem : null
+			}
+			
+
+			
+		},
+		methods : {
+			clearDialog : function(){
+				$.post("#(ctxPath)/dialog/clearDialog", {}, response=>{
+					if (response.status == 0){
+						alert("日志清理成功");
+					}else{
+						console.log(response);
+						alert("日志清除失败");
+					}
+				})
+			},
+			importStudent : function(){
+				var formData = new FormData($("#import_stu_form")[0]);
+				formData.append("file", $("#stu_excel")[0].files);
+				$.ajax({
+					type : "post",
+					url : "#(ctxPath)/student/importStudent",
+					processData : false,
+					contentType : false,
+					data : formData,
+					success : response=>{
+						if (response.indexOf("error:") > -1){
+							alert(response.substring(6));
+							return ;
+						}
+						alert("学生信息已导入");
+						vue.queryStudent();
+						return ;
+					},
+					error : function(err){
+						alert(err);
+						return ;
+					}
+				})
+			},
+			clearViewStudentModal : function(){
+				setTimeout(function(){
+					vue.viewStuModal.stuNum = "";
+					vue.viewStuModal.stuName = "";
+					vue.viewStuModal.stuBirth = "";
+					vue.viewStuModal.stuPhoto = "";										
+				}, 250)
+				
+			},
+			clearUpdateStudentModal : function(){
+				setTimeout(function() {
+					vue.updateStuModal.stuNum = "";
+					vue.updateStuModal.stuName = "";
+					vue.updateStuModal.stuBirth = "";
+					vue.updateStuModal.stuSex = "";
+					vue.imgData.imgUrl = "";
+					$(".stu_photo_file").val("");
+				}, 250)
+
+			},
+			clearAddStudentModal : function(){
+				setTimeout(function() {
+					vue.addStuModal.stuNum = "";
+					vue.addStuModal.stuName = "";
+					vue.addStuModal.stuBirth = "";
+					vue.addStuModal.stuSex = "";
+					vue.imgData.imgUrl = "";
+					$(".stu_photo_file").val("");
+				},250);
+			},
+			getDefaultStuPhoto : function(){
+				this.viewStuModal.stuPhoto = "#(ctxPath)/static/img/default_student.jpg";
+			},
+			setLoadImgEventItem : function(event){
+				this.imgData.loadImgEventItem = event;
+			},
+			loadFiles : function(){
+				//alert(this.imgData.loadImgEventItem);
+				console.log(this.imgData.loadImgEventItem);
+				var event = this.imgData.loadImgEventItem;
+				if (event == null){
+					alert("还未选择上传的图片");
+					return ;
+				}
+				var img = event.target.files[0];
+				
+				
+				var type = img.type;
+				var size = img.size;
+				//判断格式
+				if (this.imgData.accept.indexOf(type) == -1){
+					alert("请选择我们支持的图片格式");
+					return ;
+				}
+				//判断大小
+				if (size > 3145728){
+					alert('请选择3M以内的图片！');
+					return ;
+				}
+				
+				var formData = new FormData();
+				formData.append("file", img, img.name);
+				$.ajax({
+					type : "post",
+					url : "#(ctxPath)/student/uploadFiles",
+					processData : false,
+					contentType : false,
+					data : formData,
+					success : response=>{
+						if (response.indexOf("error:") > -1){
+							alert(response.substring(6));
+							this.imgData.loadImgEventItem = null;
+							return ;
+						}
+						this.imgData.imgUrl = response;
+						alert("文件上传成功");
+						//this.imgData.imgUrl = response;
+						console.log(this.imgData.imgUrl);
+						this.imgData.loadImgEventItem = null;
+						return ;
+					},
+					error : function(err){
+						alert(err);
+						this.imgData.loadImgEventItem = null;
+						return ;
+					}
+				})
+				
+				
+			},
+			closeViewStudent : function(){
+				this.viewStuModal.show_stu_form = false;
+				this.viewStuModal.stuNum = "";
+				this.viewStuModal.stuName = "";
+				this.viewStuModal.stuBirth = "";
+				this.viewStuModal.stuSex = "";
+				
+			},
+			openViewStudent : function(stuNum){
+				this.viewStuModal.show_stu_form = true;
+				this.viewStuModal.stuNum = stuNum
+				this.viewStudent();
+			},
+			viewStudent : function(){
+				this.viewStuModal.stuPhoto = "";
+				$.get('#(ctxPath)/student/queryStudent', {"keyword" : this.viewStuModal.stuNum}, response=>{
+					var stuArray = JSON.parse(response).stuArray;
+					var status = JSON.parse(response).status;
+					if (status == 0){
+						console.log(stuArray);
+						this.viewStuModal.stuNum = stuArray[0].s_num;
+						this.viewStuModal.stuName = stuArray[0].s_name;
+						this.viewStuModal.stuBirth = stuArray[0].s_birthday;
+						this.viewStuModal.stuSex = stuArray[0].s_sex;
+						this.viewStuModal.stuPhoto = stuArray[0].s_photo;
+						if (this.viewStuModal.stuPhoto == null || this.viewStuModal.stuPhoto == "" || this.viewStuModal.stuPhoto == undefined){
+							this.viewStuModal.stuPhoto = "#(ctxPath)/static/img/default_student.jpg";
+						}else{
+							this.viewStuModal.stuPhoto = "#(ctxPath)" + stuArray[0].s_photo;
+						}
+						console.log(this.viewStuModal.stuNum);
+						console.log(this.viewStuModal.stuName);
+						console.log(this.viewStuModal.stuBirth);
+						console.log(this.viewStuModal.stuSex);
+						console.log(this.viewStuModal.stuPhoto);
+					}else{
+						alert("查看学生信息失败");
+						console.log(response);
+						console.log(status);
+						this.closeViewStudent;
+					}
+				})
+			},
+			openUpdatePane : function(stuNum) {
+				this.updateStuModal.stuNum = stuNum;
+				this.updateStuModal.show_stu_form = true;
+			},
+			openAddPane : function(){
+				this.addStuModal.show_stu_form = true;
+			},
+			checkAll : function(){
+				var stuArray = this.stuQueryResult.stuArray;
+				if (stuArray != null){
+					//全选中
+					if (this.stuCheck.isCheckAll){
+						this.stuCheck.checkedValues = []
+						for (var i = 0; i < stuArray.length; i++){
+							this.stuCheck.checkedValues.push(stuArray[i].s_num);
+						}
+					}else{
+						//全不选
+						this.stuCheck.checkedValues = [];
+					}
+				}
+				
+			},
+			queryStudent : function(){
+				this.stuCheck.isCheckAll = false;
+				this.stuCheck.checkedValues = [];
+				this.stuQueryResult.stuArray = null;
+				$.post("#(ctxPath)/student/queryStudent", {keyword : this.keyword,
+					classId : this.classId,
+					orderParam1 : this.currentOrder.orderParam1,
+					orderParam2 : this.currentOrder.orderParam2,
+					paggingParam1 : this.queryPage.currentPage,
+					paggingParam2 : this.queryPage.pageSize}, response=>{this.stuQueryResult = JSON.parse(response); console.log(this.stuQueryResult);});
+			},
+			goToPage : function(pageNo){
+				console.log(pageNo);
+				if (pageNo < 1){
+					alert("已经是第一页了!");
+					return ;
+				}
+				if (pageNo > this.stuQueryResult.pageCount){
+					alert("已经是最后一夜了");
+					return ;
+				}
+				this.queryPage.currentPage = pageNo;
+				console.log(this.queryPage.currentPage)
+				this.queryStudent()
+			},
+			orderStudentList : function(orderBy, orderWay){
+				this.currentOrder.orderParam1 = orderBy;
+				this.currentOrder.orderParam2 = orderWay;
+				$.post("#(ctxPath)/student/queryStudent", {keyword : this.keyword, 
+					orderParam1 : this.currentOrder.orderParam1, orderParam2 : this.currentOrder.orderParam2}, 
+					response=>{this.stuQueryResult = JSON.parse(response);console.log(response)});
+			},
+			deleteStudent : function (stuNum){
+				console.log(stuNum);
+				if (confirm("确认要删除选中的记录吗?\n") == true){
+					$.post("#(ctxPath)/student/deleteStudent", {'s_num' : stuNum}, response=>{
+						if (response.status == 0){
+							alert("删除成功");
+						}else{
+							alert(result.error);
+						}
+						this.queryStudent();						
+					})
+					return true;
+				}else{
+					return false;
+				}
+			},
+			deleteStudentBatch : function(){
+				var stuNums = "";
+				var checkedValues = this.stuCheck.checkedValues;
+				if (checkedValues.length == 0){
+					alert("请选择要删除的记录");
+					return false;
+				}if (confirm("确认要删除选中的记录吗?")){
+					for (var i = 0; i < checkedValues.length; i++){
+						stuNums += checkedValues[i] + " ";
+					}
+					$.post("#(ctxPath)/student/deleteStudent", {'s_num' : stuNums}, response=>{
+						if (response.status == 0){
+							alert("删除成功");
+						}else{
+							alert(result.error);
+						}
+						this.queryStudent();
+					});
+					return true;
+				}else{
+					return false
+				}
+			},
+			addStudent : function(){
+				var stuNum = this.addStuModal.stuNum;
+				var stuName = this.addStuModal.stuName;
+				var birthDay = this.addStuModal.stuBirth;
+				var sex = this.addStuModal.stuSex;
+				var photo = vue.imgData.imgUrl;
+				if (stuNum == "" || stuName == "" || birthDay == "" || sex == ""){
+					alert("请填写完整信息");
+					return ;
+				}
+				
+				
+				$.post("#(ctxPath)/student/addStudent", {'s_num' : stuNum, 's_name' : stuName, 's_birthday' : birthDay, 
+					's_sex' : sex, 's_photo' : photo}, response=>{
+						if (response.status == 0){
+							alert("添加成功");
+							this.queryStudent();
+						}else{
+							alert(alert("添加失败，错误: " + result.status));
+						}
+						
+						this.addStuModal.show_stu_form = false;
+						//this.addStuModal.stuNum = "";
+						//this.addStuModal.stuName = "";
+						//this.addStuModal.stuBirth = "";
+						//this.addStuModal.stuSex = "";
+						//this.imgData.imgUrl = "";
+						this.clearAddStudentModal();
+						return ;
+					})
+			},
+			updateStudent : function(){
+				var stuNum = vue.updateStuModal.stuNum;
+				var stuName = vue.updateStuModal.stuName;
+				var birthDay = vue.updateStuModal.stuBirth;
+				var sex = vue.updateStuModal.stuSex;
+				var photo = vue.imgData.imgUrl;
+				console.log(photo);
+				if (stuNum == "" || stuName == "" || birthDay == "" || sex == ""){
+					alert("请填写完整信息");
+					return ;
+				}
+				$.post("#(ctxPath)/student/updateStudent", {'s_num' : stuNum, 's_name' : stuName, 's_birthday' : birthDay, 
+					's_sex' : sex, 's_photo' : photo}, response=>{
+					console.log(photo);
+					if (response.status == 0){
+						alert("修改成功");
+						this.queryStudent();
+					}else{
+						alert("修改失败: " + response.status)
+					}
+					
+					
+					this.updateStuModal.show_stu_form = false;
+					/*
+					this.updateStuModal.stuNum = "";
+					this.updateStuModal.stuName = "";
+					this.updateStuModal.stuBirth = "";
+					this.updateStuModal.stuSex = "";
+					this.imgData.imgUrl = "";
+					*/
+					vue.clearUpdateStudentModal();
+					return ;
+				})
+			}
+			
+		},
+		mounted : function(){
+			this.queryStudent();
+		}
+	})
+</script>

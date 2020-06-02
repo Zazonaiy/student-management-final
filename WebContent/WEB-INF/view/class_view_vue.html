@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>班级管理</title>
+<script src="#(ctxPath)/static/js/jquery-3.4.1.js"></script>
+<script src="#(ctxPath)/static/js/vue.min.js"></script>
+<!-- bootstrap -->
+<script src="#(ctxPath)/static/js/bootstrap/bootstrap.js"></script>
+<link rel="stylesheet" href="#(ctxPath)/static/css/bootstrap/bootstrap.css">
+<style type="text/css">
+	.center{
+		text-align: center;
+	}
+	#classModal input{
+		width: 174px;
+	}
+</style>
+</head>
+<body>
+<div id="main-div">
+	<h1 class="center">#(sysTitle)</h1>
+	<h2 class="center">欢迎你, #(currentUser.username)</h2>
+
+	<div id="table-head" align="center">
+		<div>
+			<h4>学生信息查询</h4>
+			查询: <select v-model="classQuery.queryBy">
+				<option selected value="class_no">班级号</option>
+				<option value="class_name">班级名</option>
+			</select>
+			<input type="text" v-model="classQuery.keyword">
+			<button @click="queryClass">搜索</button>
+		</div>
+		<div style="width: 60%;">
+		<table class="table">
+		<thead>
+			<tr>
+				<th id="check_all_td">全选<input id="check_all" type='checkbox' v-model="classCheck.isCheckAll" @change="checkAll"/></th>
+				<th>班级号：<a :class="{currentOrder : currentOrder.orderParam1=='class_no'&&currentOrder.orderParam2=='asc'}" href="javascript://" @click="orderClassList('class_no','asc')"> ↑ </a>
+					<a :class="{currentOrder : currentOrder.orderParam1=='class_no'&&currentOrder.orderParam2!='asc'}" href="javascript://" @click="orderClassList('class_no','desc')"> ↓ </a></th>
+				<th>班级名：<a :class="{currentOrder : currentOrder.orderParam1=='class_name'&&currentOrder.orderParam2=='asc'}" href="javascript://" @click="orderClassList('class_name','asc')"> ↑ </a>
+					<a :class="{currentOrder : currentOrder.orderParam1=='class_name'&&currentOrder.orderParam2!='asc'}" href="javascript://" @click="orderClassList('class_name','desc')"> ↓ </a></th>
+				<th>入学年份：<a :class="{currentOrder : currentOrder.orderParam1=='enter_year'&&currentOrder.orderParam2=='asc'}" href="javascript://" @click="orderClassList('enter_year','asc')"> ↑ </a>
+					<a :class="{currentOrder : currentOrder.orderParam1=='enter_year'&&currentOrder.orderParam2!='asc'}" href="javascript://" @click="orderClassList('enter_year','desc')"> ↓ </a></th>
+				<th>负责老师：<a :class="{currentOrder : currentOrder.orderParam1=='manager_user_fk'&&currentOrder.orderParam2=='asc'}" href="javascript://" @click="orderClassList('manager_user_fk','asc')"> ↑ </a>
+					<a :class="{currentOrder : currentOrder.orderParam1=='manager_user_fk'&&currentOrder.orderParam2!='asc'}" href="javascript://" @click="orderClassList('manager_user_fk','desc')"> ↓ </a></th>
+			</tr>
+			
+		</thead>
+		<tr v-if="classQuery.classArray==null"><td colspan="5">loading...</td></tr>
+		<tbody v-for="clazz in classQuery.classArray">
+			<tr>
+				<td align="center"><input type="checkbox" v-model="classCheck.checkedValues" :value="clazz.id"></td>
+				<td align="center">{{clazz.class_no}}</td>
+				<td align="center">{{clazz.class_name}}</td>
+				<td align="center">{{clazz.enter_year}}</td>
+				<td align="center">{{clazz.manager_user_fk}}</td>
+				
+				<td align="center"><a href='javascript://' @click='deleteClass(clazz.id)'> 删除  </a>
+				<a href="#" @click="updateClass(clazz.class_no)" data-toggle="modal" data-target=".bs-example-modal-sm"> 修改 </a></td>
+			</tr>
+		</tbody>
+		</table>
+		</div>
+
+		<div align="center">
+			<button id="batchDelBtn" @click="deleteStudentBatch" class="btn btn-danger editComp">批量删除</button>
+			<button id="addStuBtn" data-toggle="modal" data-target=".bs-example-modal-sm" class="btn btn-info editComp" @click="addClass">添加班级</button>
+		</div>		
+		
+		<!-- 分页 -->
+		<div style="text-align:center" id="pagingPane">
+			<a href="javascript://" @click="goToPage('1')">首页</a>
+			<a href="javascript://" @click="goToPage(queryPage.currentPage-1)">上一页</a>
+			<a href="javascript://" @click="goToPage(queryPage.currentPage+1)">下一页</a>
+			<a href="javascript://" @click="goToPage(stuQueryResult.pageCount)">末页</a>
+		</div>
+		<div style="text-align:center" id="paggingSelect">
+			每页 
+			<select id="page_size_sel" @change="queryClass" v-model="queryPage.pageSize">
+			<option value="5">5</option>
+			<option value="10">10</option>
+			<option value="15">15</option>
+			<option value="20">20</option>
+			</select> {{this.queryPage.pageSize}}条，共{{classQuery.queryResult.pageCount}}页，共{{classQuery.queryResult.recCount}}条数据
+			<div>  当前{{this.queryPage.currentPage}}  页</div>
+		</div>
+		
+		<div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" id="classModal">
+  			<div class="modal-dialog modal-sm" role="document">
+  				<div class="modal-content">
+  				<div class="modal-header">
+  					<h4>ClassManager</h4>
+  				</div>
+    			<div class="modal-body">
+      				<div>班级编号: <input type="text" name="class_no" required="required" v-model="updateClassModal.classNo" :readonly="updateClassModal.isClassNoReadonly"></div>
+					<div>班级名称: <input type="text" name="class_name" required="required" v-model="updateClassModal.className"></div>
+					<div>入学年份: <input type="month" name="enter_year" required="required" v-model="updateClassModal.enterYear"></div>
+					<div>负责老师: <input type="text" name="manager_user_fk" v-model="updateClassModal.managerUserFk"></div>
+    			</div>
+    			<div class="modal-footer" style="text-align: center;">
+    				<button size="large" type="primary" @click="addOrUpdateClass" class="btn btn-primary btn-lg btn-block editComp">保存</button>
+    			</div>
+    			</div>
+  			</div>
+		</div>
+		
+		<nav class="navbar navbar-inverse navbar-fixed-bottom">
+		<div class="container">
+			<div class="span6">
+				<ul class="nav nav-tabs" >
+					<li class="active"><a href="#">Management</a></li>
+                	<li><a href="#(ctxPath)/student">学生管理</a></li>
+                	<li><a href="#(ctxPath)/student/class">班级管理</a></li>
+                	<li><a href="#(ctxPath)/dialog">查看日志</a></li>
+                	<li><a href="javascript://" @click="clearDialog">清空日志</a></li>
+				</ul>
+			</div>
+		</div>
+		</nav>
+	</div>
+</div>
+
+</body>
+</html>
+
+<script>
+	var vue = new Vue({
+		el : "#main-div",
+		data : {
+			updateClassModal : {
+				classId : "",
+				classNo : "",
+				className : "",
+				enterYear : "",
+				managerUserFk : "",
+				updateOrAdd : "",
+				sClassNoReadonly : false,
+			},
+			classQuery : {
+				keyword : "",
+				queryBy : "",
+				classArray : "",
+				queryResult : "",
+			},
+			classCheck : {
+				isCheckAll : false,
+				checkedValues : [],
+			},
+			currentOrder : {
+				orderParam1 : "class_no",
+				orderParam2 : "asc",
+			},
+			queryPage : {
+				currentPage : 1,
+				pageSize : 5,
+			}
+		},
+		methods : {
+			clearDialog : function(){
+				$.post("#(ctxPath)/dialog/clearDialog", {}, response=>{
+					if (response.status == 0){
+						alert("日志清理成功");
+					}else{
+						console.log(response);
+						alert("日志清除失败");
+					}
+				})
+			},
+			doUpdate : function(classNo, className, enterYear, managerUserFk){
+				$.post("#(ctxPath)/student/class/updateClass", {
+					classNo : classNo,
+					className : className,
+					enterYear : enterYear,
+					managerUserFk : managerUserFk
+				}, response =>{
+					if (response.status == 0){
+						alert("更新成功");
+						this.queryClass();
+						$("#classModal").modal('hide');
+						this.clearModal();
+						return ;
+					}else if (response.status == 1) {
+						alert("该负责老师不存在哦");
+					}else{
+						alert("更新失败，错误: " + response.status);
+					}
+					
+					this.updateClassModal.className = "";
+					this.updateClassModal.enterYear = "";
+					this.updateClassModal.managerUserFk = "";
+					return ;
+				})
+				
+			},
+			doAdd : function(classNo, className, enterYear, managerUserFk){
+				$.post("#(ctxPath)/student/class/addClass", {
+					classNo : classNo,
+					className : className,
+					enterYear : enterYear,
+					managerUserFk : managerUserFk
+				}, response=>{
+					if (response.status == 0){
+						alert("新增班级成功！");
+						this.queryClass();
+						$("#classModal").modal('hide');
+					}else if (response.status == 1){
+						alert("该负责老师不存在哦");
+					}else{
+						alert("添加失败，错误: " + response.status); 
+					}
+					this.clearModal();
+					return ;
+				})
+			},
+			addOrUpdateClass : function(){
+				var way = vue.updateClassModal.updateOrAdd;
+				var classNo = vue.updateClassModal.classNo;
+				var className = vue.updateClassModal.className;
+				var enterYear = vue.updateClassModal.enterYear;
+				var managerUserFk = vue.updateClassModal.managerUserFk;
+				
+				if (way == ""){
+					alert("error")
+					return ;
+				}
+				if (classNo == "" || className == "" || enterYear == ""){
+					alert("请填写完整的班级信息");
+					return ;
+				}
+				if (way == "add"){
+					vue.doAdd(classNo, className, enterYear, managerUserFk);
+				}else if (way == "update"){
+					vue.doUpdate(classNo, className, enterYear, managerUserFk);
+				}else{
+					alert("error2");
+					return ;
+				}
+				
+			},
+			clearModal : function(){
+				this.updateClassModal.classId = "";
+				this.updateClassModal.classNo = "";
+				this.updateClassModal.className = "";
+				this.updateClassModal.enterYear = "";
+				this.updateClassModal.managerUserFk = "";
+				this.updateClassModal.isClassNoReadonly = false;
+			},
+			addClass : function(){
+				this.clearModal();
+				this.updateClassModal.updateOrAdd = "add";
+			},
+			updateClass : function(classNo){
+				this.clearModal();
+				this.updateClassModal.updateOrAdd = "update";
+				this.updateClassModal.classNo = classNo;
+				this.updateClassModal.isClassNoReadonly = true;
+			},
+			checkAll : function(){
+				var classArray = this.classQuery.classArray;
+				if (classArray != null){
+					if (this.classCheck.isCheckAll){
+						this.classCheck.checkedValues = [];
+						for (var i = 0; i <classArray.length; i++){
+							this.classCheck.checkedValues.push(classArray[i].id);		//删除的时候根据id删
+						}
+						console.log(this.classCheck.checkedValues)
+					}else{
+						this.classCheck.checkedValues = [];
+					}
+				}
+			},
+			deleteStudentBatch : function(){
+				var classIds = "";
+				var checkedValues = this.classCheck.checkedValues;
+				if (checkedValues.length == 0){
+					alert("还未勾选删除项哦");
+					return false;
+				}
+				if (confirm("确认要删除选中的所有项吗？")){
+					for (var i = 0; i < checkedValues.length; i++){
+						classIds += checkedValues[i] + " ";
+					}
+					console.log(classIds);
+					
+					$.post("#(ctxPath)/student/class/deleteClass", {id : classIds}, response=>{
+						if (response.status == 0){
+							alert("删除成功");
+							this.queryClass();
+						}else{
+							alert(result.status);
+						}
+						
+					});
+					return true;
+				}else{
+					return false;
+				}
+			},
+			deleteClass : function(id){
+				if (confirm("确认要删除选中的记录吗?\n") == true){
+					$.post("#(ctxPath)/student/class/deleteClass", {id : id}, response=>{
+						if (response.status == 0){
+							alert("删除成功")
+						}else{
+							alert(result.status);
+						}
+						this.queryClass();
+					});
+					return true;
+				}else{
+					return false;
+				}
+			},
+			goToPage : function(pageNo){
+				console.log(pageNo);
+				if (pageNo < 1){
+					alert("已经是第一页了!");
+					return ;
+				}
+				if (pageNo > this.classQuery.queryResult.pageCount){
+					alert("已经是最后一夜了");
+					return ;
+				}
+				this.queryPage.currentPage = pageNo;
+				console.log(this.queryPage.currentPage)
+				this.queryClass()
+			},
+			orderClassList : function(orderBy, orderWay){
+				this.currentOrder.orderParam1 = orderBy;
+				this.currentOrder.orderParam2 = orderWay;
+				$.post("#(ctxPath)/student/class/queryClass", {keyword : this.classQuery.keyword,
+					orderParam1 : this.currentOrder.orderParam1, orderParam2 : this.currentOrder.orderParam2},
+					response=>{
+						this.classQuery.classArray = JSON.parse(response).classArray;
+						this.classQuery.queryResult = JSON.parse(response);
+						console.log(this.classQuery.queryResult);
+					})
+			},
+			queryClass : function(){
+				this.classCheck.isCheckAll = false;
+				this.classCheck.checkedValues = [];
+				this.classCheck.classArray = null;
+				$.post("#(ctxPath)/student/class/queryClass", {keyword : this.classQuery.keyword,
+					queryBy : this.classQuery.queryBy,
+					orderParam1 : this.currentOrder.orderParam1,
+					orderParam2 : this.currentOrder.orderParam2,
+					paggingParam1 : this.queryPage.currentPage,
+					paggingParam2 : this.queryPage.pageSize}, response=>{
+						this.classQuery.classArray = JSON.parse(response).classArray;
+						this.classQuery.queryResult = JSON.parse(response);
+						console.log(this.classQuery.queryResult);
+					})
+			}
+		},
+		mounted : function(){
+			this.queryClass();
+		}
+	})
+</script>
